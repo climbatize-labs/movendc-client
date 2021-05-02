@@ -9,9 +9,11 @@ async def broadcast(state):
     await state["ws"].send(msg)
 
 def login_msg(user, password, device):
-    return util.serialize("account_login", {"user"   : user,
-                                            "pass"   : password,
-                                            "device" : device})
+    return util.serialize("login", {
+        "user"   : user,
+        "pass"   : password,
+        "device" : device
+    })
 
 async def login_reply(state, payload):
     if "error" in payload and payload["error"] == "ok":

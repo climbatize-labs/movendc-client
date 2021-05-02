@@ -2,6 +2,8 @@ import json
 import random
 import string
 
+seq_no = 0
+
 def fread(filename, mode):
     f = open(filename, mode)
     c = f.read()
@@ -14,8 +16,11 @@ def fwrite(filename, mode, content):
     f.close()
 
 def serialize(command, payload):
+    global seq_no
+    seq_no += 1
     return json.dumps({"version" : 1,
-                       "command" : command,
+                       "event" : command,
+                       "sequence" : seq_no,
                        "payload" : payload}, sort_keys=True)
 
 def deserialize(msg):

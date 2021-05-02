@@ -1,0 +1,4 @@
+asyncio==3.4.3
+websockets==8.1
+schema==0.7.4
+function-pattern-matching==0.99a2

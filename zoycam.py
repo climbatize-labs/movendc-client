@@ -5,12 +5,13 @@ from mlog import mlog
 from monitor import monitor
 from capture import capture
 
-def get_config():
-    filename = "config/zoycam.cfg"
-    if(len(sys.argv) == 2):
-        filename = sys.argv[1]
-    c = util.fread(filename, "r")
-    return json.loads(c)
+from state import State
+import config
+from module import (
+    ModuleWSClient,
+    ModuleImage,
+    ModulePhilipshue,
+)
 
 async def cam_worker(state):
     while(state["closed"] == False):
@@ -51,7 +52,6 @@ async def ws_recv(state):
 
 async def run(camera, loop):
     try:
-        cfg = get_config()
         state = { "closed"  : False,
                   "camera"  : camera,
                   "logged"  : False,
@@ -59,27 +59,33 @@ async def run(camera, loop):
                   "ssl"     : ssl.SSLContext(),
                   "cfg"     : cfg }
         state["ssl"].verify_mode = ssl.CERT_NONE
-        state["camera"].setparams({ "node" : cfg["camera"], "processing" : cfg["processing"] })
+        state["camera"].setparams({
+            "node" : cfg["camera"],
+            "processing" : cfg["processing"]
+        })
 
         async with websockets.connect(
-                'wss://'+cfg["host"]+'/websocket', ssl=state["ssl"]) as websocket:
+            "wss://" + cfg["host"] + "/websocket",
+            ssl=state["ssl"]
+        ) as websocket:
             state["ws"] = websocket
-            task1 = loop.create_task(cam_worker(state))
             task2 = loop.create_task(ws_recv(state))
             task3 = loop.create_task(login(state, cfg))
+
+            task1 = loop.create_task(cam_worker(state))
             await task1
             await task2
             await task3
     except OSError as e:
         raise("Exception: ", e)
 
-def main():
-    camera = capture()
-    if(camera.init() != 0):
-        mlog.error("Camera failed")
-        exit(1)
+async def state_init():
+    state = State()
+    await state.init("")
 
+def main():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(camera, loop))
+    asyncio.ensure_future(state_init())
+    loop.run_forever()
 
 main()
